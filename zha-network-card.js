@@ -7,6 +7,9 @@ var listify = (obj) => (obj instanceof Array ? obj : [obj]);
 
 // omg, js is still very broken, trouble comparing strings? 80s? plain-C? wtf!
 var compare = function (a, b) {
+  if (a === b) return 0;
+  if (a === null || a === undefined || a === "N/A") return 1;
+  if (b === null || b === undefined || b === "N/A") return -1;
   if (typeof a == "string") {
     return a.localeCompare(b);
   } else if (typeof b == "string") {
@@ -72,8 +75,8 @@ class DataTableZHA {
           (x, y) =>
             sort_dir *
             compare(
-              x.data[sort_idx] && x.data[sort_idx].content,
-              y.data[sort_idx] && y.data[sort_idx].content
+              x.raw_data && x.raw_data[sort_idx],
+              y.raw_data && y.raw_data[sort_idx]
             )
         );
       } else {
