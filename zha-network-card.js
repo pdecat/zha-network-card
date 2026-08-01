@@ -5,11 +5,12 @@ var transpose = (m) => m[0].map((x, i) => m.map((x) => x[i]));
 // single items -> Array with item with length == 1
 var listify = (obj) => (obj instanceof Array ? obj : [obj]);
 
+// a value the device did not report, as opposed to a real 0 / empty string
+var is_missing = (v) => v === null || v === undefined || v === "" || v === "N/A";
+
 // omg, js is still very broken, trouble comparing strings? 80s? plain-C? wtf!
 var compare = function (a, b) {
   if (a === b) return 0;
-  if (a === null || a === undefined || a === "N/A") return 1;
-  if (b === null || b === undefined || b === "N/A") return -1;
   if (typeof a == "string") {
     return a.localeCompare(b);
   } else if (typeof b == "string") {
@@ -71,14 +72,17 @@ class DataTableZHA {
 
       // if applicable sort according to config
       if (sort_idx > -1) {
-        this.rows.sort(
-          (x, y) =>
-            sort_dir *
-            compare(
-              x.raw_data && x.raw_data[sort_idx],
-              y.raw_data && y.raw_data[sort_idx]
-            )
-        );
+        this.rows.sort((x, y) => {
+          let a = x.raw_data ? x.raw_data[sort_idx] : null;
+          let b = y.raw_data ? y.raw_data[sort_idx] : null;
+          // keep unreported values grouped at the bottom in both directions,
+          // so they never mix with real values such as an LQI of 0
+          if (is_missing(a) || is_missing(b)) {
+            if (is_missing(a) && is_missing(b)) return 0;
+            return is_missing(a) ? 1 : -1;
+          }
+          return sort_dir * compare(a, b);
+        });
       } else {
         console.error(
           `config.sort_by: ${this.cfg.sort_by}, but column not found!`
